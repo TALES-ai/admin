@@ -1,0 +1,1791 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal - MACS SCHOOLS EA</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.23/jspdf.plugin.autotable.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <style>
+    body {
+      font-family: 'Segoe UI', Arial, sans-serif;
+      margin: 0;
+      background: linear-gradient(135deg, #f5f7fa, #c3cfe2);
+      color: #333;
+    }
+    .container {
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 250px;
+      background: linear-gradient(to bottom, #6b48ff, #ff6f61);
+      color: #fff;
+      padding: 20px;
+      box-shadow: 5px 0 15px rgba(0, 0, 0, 0.1);
+    }
+    .sidebar .profile {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .sidebar .profile img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid #ffd700;
+      margin-bottom: 10px;
+    }
+    .sidebar h2 {
+      font-size: 24px;
+      margin-bottom: 30px;
+      text-align: center;
+      text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+    }
+    .sidebar a, .sidebar button {
+      display: flex;
+      align-items: center;
+      color: #fff;
+      padding: 15px;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.1);
+      margin-bottom: 10px;
+      border-radius: 8px;
+      font-size: 16px;
+      transition: background 0.3s;
+    }
+    .sidebar a i, .sidebar button i {
+      margin-right: 10px;
+    }
+    .sidebar a:hover, .sidebar button:hover {
+      background: rgba(255, 255, 255, 0.3);
+    }
+    .main-content {
+      flex: 1;
+      padding: 30px;
+      display: flex;
+      flex-direction: column;
+    }
+    .section {
+      display: none;
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+      margin-bottom: 20px;
+      flex: 1;
+    }
+    .section.active {
+      display: block;
+    }
+    .section h1 {
+      font-size: 28px;
+      color: #6b48ff;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+    }
+    .section h1 i {
+      margin-right: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 20px;
+      border: 1px solid #ddd;
+    }
+    th, td {
+      border: 1px solid #ddd;
+      padding: 8px;
+      text-align: left;
+    }
+    th {
+      background: #6b48ff;
+      color: #fff;
+      font-size: 12px;
+    }
+    tr:nth-child(even) {
+      background: #f9f9f9;
+    }
+    @media print {
+      .no-print {
+        display: none;
+      }
+      table {
+        font-size: 10px;
+      }
+      th, td {
+        padding: 4px;
+      }
+    }
+    @media (max-width: 768px) {
+      table {
+        display: block;
+        overflow-x: auto;
+      }
+      .sidebar {
+        width: 200px;
+      }
+      .main-content {
+        padding: 15px;
+      }
+    }
+    select, input, textarea {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 15px;
+      border: 2px solid #ccc;
+      border-radius: 8px;
+      box-sizing: border-box;
+      font-size: 16px;
+    }
+    button {
+      padding: 12px 20px;
+      background: linear-gradient(to right, #ff6f61, #ff9f61);
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background 0.3s;
+      display: flex;
+      align-items: center;
+    }
+    button i {
+      margin-right: 8px;
+    }
+    button:hover {
+      background: linear-gradient(to right, #ff9f61, #ff6f61);
+    }
+    .action-btn {
+      padding: 8px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      margin-right: 5px;
+      font-size: 14px;
+    }
+    .accept-btn {
+      background: #27ae60;
+    }
+    .accept-btn:hover {
+      background: #219653;
+    }
+    .reject-btn {
+      background: #e74c3c;
+    }
+    .reject-btn:hover {
+      background: #c0392b;
+    }
+    .error-message {
+      color: #ff4444;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #ffebee;
+      border-radius: 5px;
+    }
+    .success-message {
+      color: #00cc00;
+      font-size: 16px;
+      margin: 15px 0;
+      padding: 10px;
+      background: #e8f5e9;
+      border-radius: 5px;
+    }
+    .popup {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+      z-index: 1001;
+      display: none;
+    }
+    .popup-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      display: none;
+    }
+    .loading-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(255, 255, 255, 0.8);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+      display: none;
+    }
+    .loading-screen.active {
+      display: flex;
+    }
+    .dashboard-stats {
+      display: flex;
+      gap: 20px;
+      margin-bottom: 20px;
+    }
+    .stat-card {
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
+      flex: 1;
+      text-align: center;
+    }
+    .stat-card h3 {
+      color: #6b48ff;
+      margin-bottom: 10px;
+    }
+    .stat-card p {
+      font-size: 24px;
+      color: #333;
+    }
+    .copyright {
+      text-align: center;
+      color: #666;
+      font-size: 12px;
+      margin-top: auto;
+      padding-top: 20px;
+    }
+    .amount-deducted {
+      color: #ff4444;
+      font-weight: bold;
+    }
+    .amount-added {
+      color: #00cc00;
+    }
+    .subtract-form, .fees-form {
+      margin-bottom: 20px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+    .subtract-form input, .subtract-form textarea, .fees-form input, .fees-form select {
+      margin: 5px 0;
+      padding: 8px;
+      width: 100%;
+      max-width: 300px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    .subtract-form textarea {
+      height: 80px;
+      resize: vertical;
+    }
+  </style>
+</head>
+<body>
+  <div class="loading-screen" id="loadingScreen">
+    <div><i class="fas fa-spinner fa-spin"></i> Loading...</div>
+  </div>
+  <div class="popup-overlay" id="popupOverlay" onclick="hidePopup()"></div>
+  <div class="popup" id="popupMessage"></div>
+  <div class="container">
+    <div class="sidebar">
+      <div class="profile">
+        <img src="https://img.icons8.com/color/80/000000/administrator-male.png" alt="Admin Icon">
+        <p id="adminName">Loading...</p>
+      </div>
+      <h2>Admin Portal</h2>
+      <a href="#" onclick="showSection('dashboard')"><i class="fas fa-tachometer-alt"></i> Dashboard</a>
+      <a href="#" onclick="showSection('students')"><i class="fas fa-users"></i> Students</a>
+      <a href="#" onclick="showSection('fees')"><i class="fas fa-money-bill"></i> Fees</a>
+      <a href="#" onclick="showSection('schoolFunds')"><i class="fas fa-piggy-bank"></i> School Funds</a>
+      <a href="#" onclick="showSection('otherFunds')"><i class="fas fa-coins"></i> Other Funds</a>
+      <a href="#" onclick="showSection('requests')"><i class="fas fa-tasks"></i> Requests</a>
+      <a href="#" onclick="showSection('processedRequests')"><i class="fas fa-check-circle"></i> Processed Requests</a>
+      <a href="#" onclick="showSection('announcements')"><i class="fas fa-bullhorn"></i> Announcements</a>
+      <a href="#" onclick="showSection('transactions')"><i class="fas fa-exchange-alt"></i> Transactions</a>
+      <button onclick="logout()"><i class="fas fa-sign-out-alt"></i> Logout</button>
+    </div>
+    <div class="main-content">
+      <div id="dashboard" class="section active">
+        <h1><i class="fas fa-tachometer-alt"></i> Dashboard</h1>
+        <div class="dashboard-stats">
+          <div class="stat-card">
+            <h3>Total Students</h3>
+            <p id="totalStudents">0</p>
+          </div>
+          <div class="stat-card">
+            <h3>School Balance (KES)</h3>
+            <p id="schoolBalance">0 KES</p>
+          </div>
+          <div class="stat-card">
+            <h3>Other Funds (KES)</h3>
+            <p id="otherFundsBalance">0 KES</p>
+          </div>
+          <div class="stat-card">
+            <h3>Pending Requests</h3>
+            <p id="pendingRequests">0</p>
+          </div>
+        </div>
+      </div>
+      <div id="students" class="section">
+        <h1><i class="fas fa-users"></i> Students</h1>
+        <input type="text" id="searchStudent" class="no-print" placeholder="Search by Reg No or Name..." onkeyup="searchStudents()">
+        <table id="studentsTable">
+          <thead>
+            <tr>
+              <th>Reg No</th>
+              <th>Name</th>
+              <th>Class</th>
+              <th>Stream</th>
+              <th>Fees Balance</th>
+              <th class="no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="studentsBody"></tbody>
+        </table>
+        <div id="studentsMessage" class="error-message"></div>
+      </div>
+      <div id="fees" class="section">
+        <h1><i class="fas fa-money-bill"></i> Student Fees</h1>
+        <div class="fees-form no-print">
+          <select id="feesStudent" onchange="loadStudentFeesDetails()">
+            <option value="">Select a student</option>
+          </select>
+          <input id="feesAmount" type="number" placeholder="Amount (KES)" min="0" step="0.01">
+          <input id="feesTransactionCode" type="text" placeholder="Transaction Code">
+          <input id="feesPayer" type="text" placeholder="Payer Name">
+          <select id="feesMethod">
+            <option value="bank">Bank</option>
+            <option value="cash">Cash</option>
+            <option value="mobile">Mobile Payment</option>
+          </select>
+          <input id="feesDate" type="text" placeholder="Date (MM/DD/YYYY)">
+          <button onclick="addFeePayment()"><i class="fas fa-plus"></i> Add Payment</button>
+        </div>
+        <table id="feesTable">
+          <thead>
+            <tr>
+              <th>Reg No</th>
+              <th>Name</th>
+              <th>Total Expected (KES)</th>
+              <th>Paid Amount (KES)</th>
+              <th>Balance (KES)</th>
+              <th>Transaction Code</th>
+              <th>Payer</th>
+              <th>Method</th>
+              <th>Date</th>
+            </tr>
+          </thead>
+          <tbody id="feesTableBody"></tbody>
+        </table>
+        <div id="feesMessage" class="error-message"></div>
+      </div>
+      <div id="schoolFunds" class="section">
+        <h1><i class="fas fa-piggy-bank"></i> School Funds</h1>
+        <p>Current Balance: <span id="currentBalance">0 KES</span></p>
+        <div class="subtract-form">
+          <input id="fundsAmount" type="number" placeholder="Enter amount (KES)" min="0" step="0.01">
+          <select id="fundsAction">
+            <option value="add">Add Funds</option>
+            <option value="subtract">Subtract Funds</option>
+          </select>
+          <input id="fundsDescription" type="text" placeholder="Description (e.g., Manual Deduction)">
+          <button onclick="updateFunds()"><i class="fas fa-save"></i> Update Balance</button>
+        </div>
+        <table id="schoolFundsTable">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Description</th>
+              <th>Amount (KES)</th>
+              <th>Balance After (KES)</th>
+              <th>Transaction ID</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="schoolFundsTableBody"></tbody>
+        </table>
+        <div id="fundsMessage" class="error-message"></div>
+      </div>
+      <div id="otherFunds" class="section">
+        <h1><i class="fas fa-coins"></i> Other Funds</h1>
+        <p>Current Balance: <span id="totalOtherFunds">0 KES</span></p>
+        <div class="subtract-form">
+          <input id="otherFundsSubtractAmount" type="number" placeholder="Amount (KES)" min="0" step="0.01">
+          <input id="otherFundsSubtractDescription" type="text" placeholder="Description">
+          <button onclick="subtractFunds('otherFunds')"><i class="fas fa-minus"></i> Subtract</button>
+        </div>
+        <table id="otherFundsTable">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Reg No</th>
+              <th>Student Name</th>
+              <th>Fund Type</th>
+              <th>Amount (KES)</th>
+              <th>Balance After (KES)</th>
+              <th>Transaction ID</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="otherFundsTableBody"></tbody>
+        </table>
+        <div id="otherFundsMessage" class="error-message"></div>
+      </div>
+      <div id="requests" class="section">
+        <h1><i class="fas fa-tasks"></i> Pending Requests</h1>
+        <h2>Purchase Requests</h2>
+        <table id="purchaseRequestsTable">
+          <thead>
+            <tr>
+              <th>Item Name</th>
+              <th>Description</th>
+              <th>Quantity</th>
+              <th>Unit Cost (KES)</th>
+              <th>Total Cost (KES)</th>
+              <th>Supplier</th>
+              <th>Contact</th>
+              <th>Timestamp</th>
+              <th class="no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="purchaseRequestsBody"></tbody>
+        </table>
+        <h2>Service Requests</h2>
+        <table id="serviceRequestsTable">
+          <thead>
+            <tr>
+              <th>Service Name</th>
+              <th>Description</th>
+              <th>Amount (KES)</th>
+              <th>Provider</th>
+              <th>Contact</th>
+              <th>Date</th>
+              <th class="no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="serviceRequestsBody"></tbody>
+        </table>
+        <div id="requestsMessage" class="error-message"></div>
+      </div>
+      <div id="processedRequests" class="section">
+        <h1><i class="fas fa-check-circle"></i> Processed Requests</h1>
+        <h2>Accepted Requests</h2>
+        <table id="acceptedRequestsTable">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Cost (KES)</th>
+              <th>Provider/Supplier</th>
+              <th>Contact</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="acceptedRequestsBody"></tbody>
+        </table>
+        <h2>Rejected Requests</h2>
+        <table id="rejectedRequestsTable">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Name</th>
+              <th>Description</th>
+              <th>Cost (KES)</th>
+              <th>Provider/Supplier</th>
+              <th>Contact</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="rejectedRequestsBody"></tbody>
+        </table>
+        <div id="processedRequestsMessage" class="error-message"></div>
+      </div>
+      <div id="announcements" class="section">
+        <h1><i class="fas fa-bullhorn"></i> Announcements</h1>
+        <select id="announcementType" onchange="toggleAnnouncementForm()" class="no-print">
+          <option value="general">General</option>
+          <option value="individual">Individual</option>
+        </select>
+        <select id="announcementStudent" style="display: none;" class="no-print"></select>
+        <input id="announcementTitle" type="text" placeholder="Title">
+        <textarea id="announcementMessage" placeholder="Message"></textarea>
+        <button onclick="addAnnouncement()" class="no-print"><i class="fas fa-plus"></i> Add Announcement</button>
+        <table id="announcementsTable">
+          <thead>
+            <tr>
+              <th>Type</th>
+              <th>Title</th>
+              <th>Message</th>
+              <th>Posted By</th>
+              <th>Date</th>
+              <th class="no-print">Actions</th>
+            </tr>
+          </thead>
+          <tbody id="announcementsBody"></tbody>
+        </table>
+        <div id="announcementsMessage" class="error-message"></div>
+      </div>
+      <div id="transactions" class="section">
+        <h1><i class="fas fa-exchange-alt"></i> Transactions</h1>
+        <table id="transactionsTable">
+          <thead>
+            <tr>
+              <th>Reg No</th>
+              <th>Student Name</th>
+              <th>Transaction Code</th>
+              <th>Payer</th>
+              <th>Amount (KES)</th>
+              <th>Method</th>
+              <th>Date</th>
+              <th>Timestamp</th>
+            </tr>
+          </thead>
+          <tbody id="transactionsBody"></tbody>
+        </table>
+        <div id="transactionsMessage" class="error-message"></div>
+      </div>
+      <div class="copyright">© TalesOnlineDev2025</div>
+    </div>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyDqVIFxRrkNSejRuNY9NPYrMpUShO2Yz7U",
+      authDomain: "lifeflow-yhtl6.firebaseapp.com",
+      projectId: "lifeflow-yhtl6",
+      storageBucket: "lifeflow-yhtl6.firebasestorage.app",
+      messagingSenderId: "129785956666",
+      appId: "1:129785956666:web:541a08bee37c739556a803",
+      databaseURL: "https://lifeflow-yhtl6-default-rtdb.firebaseio.com"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    const db = firebase.database();
+
+    const loadingScreen = document.getElementById("loadingScreen");
+    const popupOverlay = document.getElementById("popupOverlay");
+    const popupMessage = document.getElementById("popupMessage");
+
+    auth.onAuthStateChanged(user => {
+      console.log("Auth state changed:", user ? "User logged in" : "No user");
+      if (!user || localStorage.getItem("userType") !== "admin") {
+        localStorage.clear();
+        window.location.href = "index.html";
+      } else {
+        const adminName = localStorage.getItem("adminName") || user.displayName || user.email.split("@")[0].replace(/[^a-zA-Z0-9\s]/g, "") || "Admin";
+        document.getElementById("adminName").textContent = adminName;
+        showSection("dashboard");
+        loadDashboard();
+        loadStudents();
+        loadFees();
+        loadSchoolFunds();
+        loadOtherFunds();
+        loadRequests();
+        loadProcessedRequests();
+        loadAnnouncements();
+        loadTransactions();
+        loadAnnouncementForm();
+        loadFeesForm();
+      }
+    });
+
+    function showSection(section) {
+      console.log(`Showing section: ${section}`);
+      document.querySelectorAll(".section").forEach(div => div.classList.remove("active"));
+      const targetSection = document.getElementById(section);
+      if (targetSection) {
+        targetSection.classList.add("active");
+      } else {
+        console.error(`Section ${section} not found`);
+        showPopup(`Section ${section} not found`, true);
+      }
+    }
+
+    function showPopup(message, isError = true) {
+      console.log(`Popup: ${message}, isError: ${isError}`);
+      popupMessage.textContent = message;
+      popupMessage.className = `popup ${isError ? "error-message" : "success-message"}`;
+      popupOverlay.style.display = "block";
+      popupMessage.style.display = "block";
+      setTimeout(hidePopup, isError ? 3000 : 5000);
+    }
+
+    function hidePopup() {
+      popupOverlay.style.display = "none";
+      popupMessage.style.display = "none";
+    }
+
+    async function loadDashboard() {
+      console.log("Loading dashboard");
+      loadingScreen.classList.add("active");
+      try {
+        const [studentsSnapshot, schoolFundsSnapshot, otherFundsSnapshot, requestsSnapshot] = await Promise.all([
+          db.ref("users/students").once("value"),
+          db.ref("school_funds").once("value"),
+          db.ref("other_funds").once("value"),
+          db.ref("requests").once("value")
+        ]);
+
+        const students = studentsSnapshot.val() || {};
+        const totalStudents = Object.keys(students).length;
+
+        const schoolFunds = schoolFundsSnapshot.val() || { balance: 0 };
+        const otherFunds = otherFundsSnapshot.val() || { balance: 0 };
+
+        const requests = requestsSnapshot.val() || {};
+        const purchaseRequests = requests.purchase_requests || {};
+        const serviceRequests = requests.service_requests || {};
+        const pendingRequests = Object.values(purchaseRequests).filter(req => req.status === "pending").length +
+                               Object.values(serviceRequests).filter(req => req.status === "pending").length;
+
+        document.getElementById("totalStudents").textContent = totalStudents;
+        document.getElementById("schoolBalance").textContent = `${parseFloat(schoolFunds.balance || 0).toFixed(2)} KES`;
+        document.getElementById("otherFundsBalance").textContent = `${parseFloat(otherFunds.balance || 0).toFixed(2)} KES`;
+        document.getElementById("pendingRequests").textContent = pendingRequests;
+      } catch (error) {
+        console.error("Load dashboard error:", error);
+        showPopup(`Failed to load dashboard: ${error.message}`, true);
+      } finally {
+        loadingScreen.classList.remove("active");
+      }
+    }
+
+    async function loadStudents() {
+      console.log("Loading students");
+      const studentsBody = document.getElementById("studentsBody");
+      studentsBody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let studentsList = [];
+
+        for (const [regNo, student] of Object.entries(students)) {
+          const transactions = student.fees?.transactions || {};
+          const totalPaid = Object.values(transactions).reduce((sum, tx) => sum + (tx.status === "completed" ? parseFloat(tx.amount || 0) : 0), 0);
+          const totalFees = parseFloat(student.fees?.totalExpected || 0);
+          const balance = totalFees - totalPaid;
+          studentsList.push({
+            regNo: regNo.replace(/_/g, "/"),
+            name: student.profile?.name || "N/A",
+            form: student.form || "N/A",
+            stream: student.stream || "N/A",
+            balance: balance.toFixed(2)
+          });
+        }
+
+        studentsBody.innerHTML = "";
+        if (studentsList.length === 0) {
+          studentsBody.innerHTML = "<tr><td colspan='6'>No students found.</td></tr>";
+          return;
+        }
+
+        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+        studentsList.forEach(student => {
+          studentsBody.innerHTML += `<tr>
+            <td>${student.regNo}</td>
+            <td>${student.name}</td>
+            <td>${student.form.replace(/^(playgroup|preprimary|grade)/, match => match === "playgroup" ? "Play Group" : match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}</td>
+            <td>${student.stream}</td>
+            <td>${student.balance} KES</td>
+            <td class="no-print">
+              <button class="action-btn accept-btn" onclick="editStudent('${student.regNo.replace(/\//g, "_")}')"><i class="fas fa-edit"></i> Edit</button>
+              <button class="action-btn reject-btn" onclick="deleteStudent('${student.regNo.replace(/\//g, "_")}')"><i class="fas fa-trash"></i> Delete</button>
+            </td>
+          </tr>`;
+        });
+      } catch (error) {
+        console.error("Load students error:", error);
+        studentsBody.innerHTML = `<tr><td colspan="6">Failed to load students: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    async function searchStudents() {
+      console.log("Searching students");
+      const searchTerm = document.getElementById("searchStudent").value.toLowerCase();
+      const studentsBody = document.getElementById("studentsBody");
+      studentsBody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let studentsList = [];
+
+        for (const [regNo, student] of Object.entries(students)) {
+          if (student.profile?.name.toLowerCase().includes(searchTerm) || regNo.toLowerCase().includes(searchTerm)) {
+            const transactions = student.fees?.transactions || {};
+            const totalPaid = Object.values(transactions).reduce((sum, tx) => sum + (tx.status === "completed" ? parseFloat(tx.amount || 0) : 0), 0);
+            const totalFees = parseFloat(student.fees?.totalExpected || 0);
+            const balance = totalFees - totalPaid;
+            studentsList.push({
+              regNo: regNo.replace(/_/g, "/"),
+              name: student.profile?.name || "N/A",
+              form: student.form || "N/A",
+              stream: student.stream || "N/A",
+              balance: balance.toFixed(2)
+            });
+          }
+        }
+
+        studentsBody.innerHTML = "";
+        if (studentsList.length === 0) {
+          studentsBody.innerHTML = `<tr><td colspan="6">No students found matching '${searchTerm}'.</td></tr>`;
+          return;
+        }
+
+        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+        studentsList.forEach(student => {
+          studentsBody.innerHTML += `<tr>
+            <td>${student.regNo}</td>
+            <td>${student.name}</td>
+            <td>${student.form.replace(/^(playgroup|preprimary|grade)/, match => match === "playgroup" ? "Play Group" : match === "preprimary" ? "Pre-Primary " : "Grade ").replace(/(\d)$/, " $1")}</td>
+            <td>${student.stream}</td>
+            <td>${student.balance} KES</td>
+            <td class="no-print">
+              <button class="action-btn accept-btn" onclick="editStudent('${student.regNo.replace(/\//g, "_")}')"><i class="fas fa-edit"></i> Edit</button>
+              <button class="action-btn reject-btn" onclick="deleteStudent('${student.regNo.replace(/\//g, "_")}')"><i class="fas fa-trash"></i> Delete</button>
+            </td>
+          </tr>`;
+        });
+      } catch (error) {
+        console.error("Search students error:", error);
+        studentsBody.innerHTML = `<tr><td colspan="6">Failed to search students: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    async function editStudent(regNo) {
+      console.log(`Editing student: ${regNo}`);
+      showPopup("Edit student functionality is not implemented yet.", true);
+    }
+
+    async function deleteStudent(regNo) {
+      console.log(`Deleting student: ${regNo}`);
+      if (!confirm(`Are you sure you want to delete student ${regNo.replace(/_/g, "/")}?`)) return;
+      try {
+        await db.ref(`users/students/${regNo}`).remove();
+        showPopup("Student deleted successfully!", false);
+        loadStudents();
+      } catch (error) {
+        console.error("Delete student error:", error);
+        showPopup(`Failed to delete student: ${error.message}`, true);
+      }
+    }
+
+    async function loadFeesForm() {
+      console.log("Loading fees form");
+      const studentSelect = document.getElementById("feesStudent");
+      studentSelect.innerHTML = "<option>Loading...</option>";
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let studentsList = [];
+
+        for (const [regNo, student] of Object.entries(students)) {
+          studentsList.push({
+            regNo: regNo.replace(/_/g, "/"),
+            name: student.profile?.name || "N/A"
+          });
+        }
+
+        studentSelect.innerHTML = "<option value=''>Select a student</option>";
+        if (studentsList.length === 0) {
+          studentSelect.innerHTML = "<option value=''>No students found.</option>";
+          return;
+        }
+
+        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+        studentsList.forEach(student => {
+          studentSelect.innerHTML += `<option value="${student.regNo.replace(/\//g, "_")}">${student.name} (${student.regNo})</option>`;
+        });
+      } catch (error) {
+        console.error("Load fees form error:", error);
+        studentSelect.innerHTML = `<option>Failed to load students: ${error.message}</option>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    async function loadFees() {
+      console.log("Loading fees");
+      const feesBody = document.getElementById("feesTableBody");
+      feesBody.innerHTML = "<tr><td colspan='9'>Loading...</td></tr>";
+
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let html = "";
+        if (Object.keys(students).length > 0) {
+          for (const [regNo, student] of Object.entries(students)) {
+            const fees = student.fees || {};
+            const totalFees = parseFloat(fees.totalExpected || 0);
+            const transactions = fees.transactions || {};
+            const studentName = student.profile?.name || "N/A";
+            const paidAmount = Object.values(transactions).reduce((sum, tx) => {
+              return tx.status === "completed" ? sum + parseFloat(tx.amount || 0) : sum;
+            }, 0);
+            const balance = totalFees - paidAmount;
+            for (const [txId, tx] of Object.entries(transactions)) {
+              if (tx.status === "completed") {
+                html += `<tr>
+                  <td>${regNo.replace(/_/g, "/")}</td>
+                  <td>${studentName}</td>
+                  <td>${totalFees.toFixed(2)}</td>
+                  <td>${paidAmount.toFixed(2)}</td>
+                  <td>${balance.toFixed(2)}</td>
+                  <td>${tx.transactionCode || "N/A"}</td>
+                  <td>${tx.payer || "N/A"}</td>
+                  <td>${tx.method || "N/A"}</td>
+                  <td>${tx.date || "N/A"}</td>
+                </tr>`;
+              }
+            }
+            if (Object.keys(transactions).length === 0) {
+              html += `<tr>
+                <td>${regNo.replace(/_/g, "/")}</td>
+                <td>${studentName}</td>
+                <td>${totalFees.toFixed(2)}</td>
+                <td>${paidAmount.toFixed(2)}</td>
+                <td>${balance.toFixed(2)}</td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>N/A</td>
+                <td>N/A</td>
+              </tr>`;
+            }
+          }
+        } else {
+          html = "<tr><td colspan='9'>No students found</td></tr>";
+        }
+        feesBody.innerHTML = html;
+      } catch (error) {
+        console.error("Error loading fees:", error);
+        feesBody.innerHTML = `<tr><td colspan='9'>Failed to load fees: ${error.message}</td></tr>`;
+        showPopup(`Failed to load fees: ${error.message}`, true);
+      }
+    }
+
+    async function loadStudentFeesDetails() {
+      console.log("Loading student fees details");
+      const regNo = document.getElementById("feesStudent").value;
+      if (!regNo) {
+        document.getElementById("feesTableBody").innerHTML = "<tr><td colspan='9'>Please select a student</td></tr>";
+        return;
+      }
+      try {
+        const snapshot = await db.ref(`users/students/${regNo}/fees`).once("value");
+        const fees = snapshot.val() || {};
+        const transactions = fees.transactions || {};
+        const totalFees = parseFloat(fees.totalExpected || 0);
+        const paidAmount = Object.values(transactions).reduce((sum, tx) => {
+          return tx.status === "completed" ? sum + parseFloat(tx.amount || 0) : sum;
+        }, 0);
+        const balance = totalFees - paidAmount;
+        const studentSnapshot = await db.ref(`users/students/${regNo}/profile/name`).once("value");
+        const studentName = studentSnapshot.val() || "N/A";
+        let html = "";
+        if (Object.keys(transactions).length > 0) {
+          for (const [txId, tx] of Object.entries(transactions)) {
+            if (tx.status === "completed") {
+              html += `<tr>
+                <td>${regNo.replace(/_/g, "/")}</td>
+                <td>${studentName}</td>
+                <td>${totalFees.toFixed(2)}</td>
+                <td>${paidAmount.toFixed(2)}</td>
+                <td>${balance.toFixed(2)}</td>
+                <td>${tx.transactionCode || "N/A"}</td>
+                <td>${tx.payer || "N/A"}</td>
+                <td>${tx.method || "N/A"}</td>
+                <td>${tx.date || "N/A"}</td>
+              </tr>`;
+            }
+          }
+        } else {
+          html = `<tr>
+            <td>${regNo.replace(/_/g, "/")}</td>
+            <td>${studentName}</td>
+            <td>${totalFees.toFixed(2)}</td>
+            <td>${paidAmount.toFixed(2)}</td>
+            <td>${balance.toFixed(2)}</td>
+            <td>N/A</td>
+            <td>N/A</td>
+            <td>N/A</td>
+            <td>N/A</td>
+          </tr>`;
+        }
+        document.getElementById("feesTableBody").innerHTML = html;
+      } catch (error) {
+        console.error("Load student fees details error:", error);
+        document.getElementById("feesTableBody").innerHTML = `<tr><td colspan="9">Failed to load fees: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    async function addFeePayment() {
+      console.log("Adding fee payment");
+      loadingScreen.classList.add("active");
+      try {
+        const regNo = document.getElementById("feesStudent").value;
+        const amount = parseFloat(document.getElementById("feesAmount").value);
+        const transactionCode = document.getElementById("feesTransactionCode").value.trim().toUpperCase();
+        const payer = document.getElementById("feesPayer").value.trim();
+        const method = document.getElementById("feesMethod").value;
+        const date = document.getElementById("feesDate").value.trim();
+        const adminName = document.getElementById("adminName").textContent;
+
+        if (!regNo) {
+          showPopup("Please select a student.", true);
+          return;
+        }
+        if (!amount || amount <= 0) {
+          showPopup("Please enter a valid amount.", true);
+          return;
+        }
+        if (!transactionCode) {
+          showPopup("Please enter a transaction code.", true);
+          return;
+        }
+        if (!payer) {
+          showPopup("Please enter the payer's name.", true);
+          return;
+        }
+        if (!date || !/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(date)) {
+          showPopup("Please enter a valid date (MM/DD/YYYY).", true);
+          return;
+        }
+
+        // Check for duplicate transaction code
+        const studentsSnapshot = await db.ref("users/students").once("value");
+        const students = studentsSnapshot.val() || {};
+        for (const [studentRegNo, student] of Object.entries(students)) {
+          const transactions = student.fees?.transactions || {};
+          for (const tx of Object.values(transactions)) {
+            if (tx.transactionCode === transactionCode) {
+              showPopup("Transaction code already exists.", true);
+              return;
+            }
+          }
+        }
+
+        const transactionId = Date.now().toString();
+        const timestamp = new Date().toISOString();
+        const transaction = {
+          accountant: adminName,
+          amount,
+          date,
+          method,
+          payer,
+          status: "completed",
+          timestamp,
+          transactionCode
+        };
+
+        await db.ref(`users/students/${regNo}/fees/transactions/${transactionId}`).set(transaction);
+        showPopup(`Payment of ${amount.toFixed(2)} KES added successfully!`, false);
+        document.getElementById("feesAmount").value = "";
+        document.getElementById("feesTransactionCode").value = "";
+        document.getElementById("feesPayer").value = "";
+        document.getElementById("feesDate").value = "";
+        loadFees();
+        loadTransactions();
+        loadStudents();
+      } catch (error) {
+        console.error("Add fee payment error:", error);
+        showPopup(`Failed to add payment: ${error.message}`, true);
+      } finally {
+        loadingScreen.classList.remove("active");
+      }
+    }
+
+    async function loadSchoolFunds() {
+      console.log("Loading school funds");
+      const fundsBody = document.getElementById("schoolFundsTableBody");
+      fundsBody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+
+      try {
+        const [schoolFundsSnapshot, transactionsSnapshot, acceptedServiceSnapshot, acceptedPurchaseSnapshot] = await Promise.all([
+          db.ref("school_funds").once("value"),
+          db.ref("transactions").once("value"),
+          db.ref("outs/accepted/service_requests").once("value"),
+          db.ref("outs/accepted/purchase_requests").once("value")
+        ]);
+
+        const funds = schoolFundsSnapshot.val() || { balance: 0 };
+        document.getElementById("currentBalance").textContent = `${parseFloat(funds.balance || 0).toFixed(2)} KES`;
+
+        let transactions = [];
+
+        // Manual deductions and additions
+        const manualTransactions = transactionsSnapshot.val() || {};
+        for (const [txId, tx] of Object.entries(manualTransactions)) {
+          if (tx.account === "schoolFunds") {
+            transactions.push({
+              type: tx.type === "deduction" ? "Deduction" : "Addition",
+              description: tx.description || "N/A",
+              amount: parseFloat(tx.amount || 0),
+              balanceAfter: parseFloat(tx.balance_after || 0),
+              transactionId: txId,
+              timestamp: tx.timestamp,
+              className: tx.type === "deduction" ? "amount-deducted" : "amount-added"
+            });
+          }
+        }
+
+        // Accepted service requests
+        const serviceRequests = acceptedServiceSnapshot.val() || {};
+        for (const [reqId, req] of Object.entries(serviceRequests)) {
+          transactions.push({
+            type: "Service Request",
+            description: req.serviceName || "N/A",
+            amount: -(parseFloat(req.amount || 0)),
+            balanceAfter: parseFloat(funds.balance || 0),
+            transactionId: reqId,
+            timestamp: req.processedTimestamp,
+            className: "amount-deducted"
+          });
+        }
+
+        // Accepted purchase requests
+        const purchaseRequests = acceptedPurchaseSnapshot.val() || {};
+        for (const [reqId, req] of Object.entries(purchaseRequests)) {
+          transactions.push({
+            type: "Purchase Request",
+            description: req.itemName || "N/A",
+            amount: -(parseFloat(req.totalCost || 0)),
+            balanceAfter: parseFloat(funds.balance || 0),
+            transactionId: reqId,
+            timestamp: req.processedTimestamp,
+            className: "amount-deducted"
+          });
+        }
+
+        transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        let html = "";
+        if (transactions.length > 0) {
+          for (const tx of transactions) {
+            const timestamp = new Date(tx.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" });
+            html += `<tr>
+              <td>${tx.type}</td>
+              <td>${tx.description}</td>
+              <td class="${tx.className}">${tx.amount.toFixed(2)}</td>
+              <td>${tx.balanceAfter.toFixed(2)}</td>
+              <td>${tx.transactionId}</td>
+              <td>${timestamp}</td>
+            </tr>`;
+          }
+        } else {
+          html = "<tr><td colspan='6'>No school funds transactions found</td></tr>";
+        }
+        fundsBody.innerHTML = html;
+      } catch (error) {
+        console.error("Load school funds error:", error);
+        fundsBody.innerHTML = `<tr><td colspan="6">Failed to load school funds: ${error.message}</td></tr>`;
+        showPopup(`Failed to load school funds: ${error.message}`, true);
+      }
+    }
+
+    async function loadOtherFunds() {
+      console.log("Loading other funds");
+      const otherFundsBody = document.getElementById("otherFundsTableBody");
+      otherFundsBody.innerHTML = "<tr><td colspan='8'>Loading...</td></tr>";
+
+      try {
+        const [studentsSnapshot, otherFundsSnapshot, transactionsSnapshot] = await Promise.all([
+          db.ref("users/students").once("value"),
+          db.ref("other_funds").once("value"),
+          db.ref("transactions").once("value")
+        ]);
+
+        const otherFunds = otherFundsSnapshot.val() || { balance: 0 };
+        let currentBalance = parseFloat(otherFunds.balance || 0);
+        document.getElementById("totalOtherFunds").textContent = `${currentBalance.toFixed(2)} KES`;
+
+        let transactions = [];
+
+        // Student other funds transactions
+        const students = studentsSnapshot.val() || {};
+        for (const [regNo, student] of Object.entries(students)) {
+          const otherFundsTx = student.other_funds?.transactions || {};
+          const studentName = student.profile?.name || "N/A";
+          for (const [txId, tx] of Object.entries(otherFundsTx)) {
+            transactions.push({
+              type: "Payment",
+              regNo: regNo.replace(/_/g, "/"),
+              studentName,
+              fundType: tx.fundType || "N/A",
+              amount: parseFloat(tx.amount || 0),
+              balanceAfter: parseFloat(tx.balance || currentBalance),
+              transactionId: txId,
+              timestamp: tx.timestamp,
+              className: "amount-added"
+            });
+          }
+        }
+
+        // Manual deductions
+        const manualTransactions = transactionsSnapshot.val() || {};
+        for (const [txId, tx] of Object.entries(manualTransactions)) {
+          if (tx.account === "otherFunds" && tx.type === "deduction") {
+            transactions.push({
+              type: "Deduction",
+              regNo: "-",
+              studentName: "-",
+              fundType: tx.description || "Manual Deduction",
+              amount: parseFloat(tx.amount || 0),
+              balanceAfter: parseFloat(tx.balance_after || currentBalance),
+              transactionId: txId,
+              timestamp: tx.timestamp,
+              className: "amount-deducted"
+            });
+          }
+        }
+
+        transactions.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+        let runningBalance = currentBalance;
+        transactions = transactions.map(tx => {
+          runningBalance = runningBalance + (tx.amount < 0 ? tx.amount : tx.amount);
+          return { ...tx, balanceAfter: runningBalance };
+        });
+
+        let html = "";
+        if (transactions.length > 0) {
+          for (const tx of transactions) {
+            const timestamp = new Date(tx.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" });
+            html += `<tr>
+              <td>${tx.type}</td>
+              <td>${tx.regNo}</td>
+              <td>${tx.studentName}</td>
+              <td>${tx.fundType}</td>
+              <td class="${tx.className}">${tx.amount.toFixed(2)}</td>
+              <td>${tx.balanceAfter.toFixed(2)}</td>
+              <td>${tx.transactionId}</td>
+              <td>${timestamp}</td>
+            </tr>`;
+          }
+        } else {
+          html = "<tr><td colspan='8'>No other funds transactions found</td></tr>";
+        }
+        otherFundsBody.innerHTML = html;
+      } catch (error) {
+        console.error("Load other funds error:", error);
+        otherFundsBody.innerHTML = `<tr><td colspan="8">Failed to load other funds: ${error.message}</td></tr>`;
+        showPopup(`Failed to load other funds: ${error.message}`, true);
+      }
+    }
+
+    async function subtractFunds(account) {
+      console.log(`Subtracting from ${account}`);
+      loadingScreen.classList.add("active");
+      try {
+        const amountInput = document.getElementById(`${account}SubtractAmount`);
+        const descriptionInput = document.getElementById(`${account}SubtractDescription`);
+        const amount = parseFloat(amountInput.value);
+        const description = descriptionInput.value.trim();
+
+        if (!amount || amount <= 0) {
+          showPopup("Please enter a valid amount", true);
+          return;
+        }
+        if (!description) {
+          showPopup("Please enter a description", true);
+          return;
+        }
+
+        const balanceRef = db.ref(`${account}/balance`);
+        const balanceSnapshot = await balanceRef.once("value");
+        const currentBalance = parseFloat(balanceSnapshot.val() || 0);
+        if (amount > currentBalance) {
+          showPopup("Insufficient funds", true);
+          return;
+        }
+
+        const newBalance = currentBalance - amount;
+        const transactionId = db.ref("transactions").push().key;
+        const timestamp = new Date().toISOString();
+
+        await Promise.all([
+          balanceRef.set(newBalance),
+          db.ref(`${account}/last_updated`).set(timestamp),
+          db.ref(`transactions/${transactionId}`).set({
+            amount: -amount,
+            timestamp,
+            status: "completed",
+            type: "deduction",
+            description,
+            balance_after: newBalance,
+            account
+          })
+        ]);
+
+        showPopup(`Successfully subtracted ${amount.toFixed(2)} KES from ${account}`, false);
+        amountInput.value = "";
+        descriptionInput.value = "";
+        if (account === "otherFunds") loadOtherFunds();
+      } catch (error) {
+        console.error(`Error subtracting from ${account}:`, error);
+        showPopup(`Failed to subtract funds: ${error.message}`, true);
+      } finally {
+        loadingScreen.classList.remove("active");
+      }
+    }
+
+    async function updateFunds() {
+      console.log("Updating school funds");
+      const amount = parseFloat(document.getElementById("fundsAmount").value);
+      const action = document.getElementById("fundsAction").value;
+      const description = document.getElementById("fundsDescription").value.trim();
+
+      if (!amount || amount <= 0) {
+        showPopup("Please enter a valid amount.", true);
+        return;
+      }
+      if (!description) {
+        showPopup("Please enter a description.", true);
+        return;
+      }
+
+      loadingScreen.classList.add("active");
+      try {
+        const snapshot = await db.ref("school_funds").once("value");
+        const funds = snapshot.val() || { balance: 0 };
+        let newBalance = action === "add" ? funds.balance + amount : funds.balance - amount;
+
+        if (newBalance < 0) {
+          showPopup("Insufficient funds for subtraction.", true);
+          return;
+        }
+
+        const transactionId = db.ref("transactions").push().key;
+        const timestamp = new Date().toISOString();
+
+        await Promise.all([
+          db.ref("school_funds").update({
+            balance: newBalance,
+            last_updated: timestamp
+          }),
+          db.ref(`transactions/${transactionId}`).set({
+            amount: action === "add" ? amount : -amount,
+            timestamp,
+            status: "completed",
+            type: action === "add" ? "addition" : "deduction",
+            description,
+            balance_after: newBalance,
+            account: "schoolFunds"
+          })
+        ]);
+
+        showPopup(`Balance updated successfully! New balance: ${newBalance.toFixed(2)} KES`, false);
+        document.getElementById("fundsAmount").value = "";
+        document.getElementById("fundsDescription").value = "";
+        loadSchoolFunds();
+        loadDashboard();
+      } catch (error) {
+        console.error("Update funds error:", error);
+        showPopup(`Failed to update funds: ${error.message}`, true);
+      } finally {
+        loadingScreen.classList.remove("active");
+      }
+    }
+
+    async function processRequest(type, id, status) {
+      console.log(`Processing request: ${type}/${id} with status: ${status}`);
+      if (!confirm(`Are you sure you want to ${status} this ${type.replace("_requests", "")} request?`)) return;
+      loadingScreen.classList.add("active");
+      try {
+        const requestRef = db.ref(`requests/${type}/${id}`);
+        const snapshot = await requestRef.once("value");
+        const request = snapshot.val();
+        if (!request) {
+          showPopup("Request not found.", true);
+          return;
+        }
+
+        request.status = status;
+        request.processedTimestamp = new Date().toISOString();
+
+        if (status === "accepted") {
+          const amount = type === "service_requests" ? parseFloat(request.amount || 0) : parseFloat(request.totalCost || 0);
+          const balanceRef = db.ref("school_funds/balance");
+          const balanceSnapshot = await balanceRef.once("value");
+          const currentBalance = parseFloat(balanceSnapshot.val() || 0);
+          if (amount > currentBalance) {
+            showPopup("Insufficient school funds", true);
+            return;
+          }
+          const newBalance = currentBalance - amount;
+          const transactionId = db.ref("transactions").push().key;
+          const description = type === "service_requests" ? `Service: ${request.serviceName}` : `Purchase: ${request.itemName}`;
+          await Promise.all([
+            balanceRef.set(newBalance),
+            db.ref("school_funds/last_updated").set(request.processedTimestamp),
+            db.ref(`transactions/${transactionId}`).set({
+              amount: -amount,
+              timestamp: request.processedTimestamp,
+              status: "completed",
+              type: "deduction",
+              description,
+              balance_after: newBalance,
+              account: "schoolFunds"
+            }),
+            db.ref(`outs/accepted/${type}/${id}`).set(request),
+            requestRef.remove()
+          ]);
+        } else {
+          await Promise.all([
+            db.ref(`outs/${status}/${type}/${id}`).set(request),
+            requestRef.remove()
+          ]);
+        }
+
+        showPopup(`Request ${status} successfully!`, false);
+        loadRequests();
+        loadProcessedRequests();
+        loadSchoolFunds();
+        loadDashboard();
+      } catch (error) {
+        console.error(`Process ${type} error:`, error);
+        showPopup(`Failed to process request: ${error.message}`, true);
+      } finally {
+        loadingScreen.classList.remove("active");
+      }
+    }
+
+    async function loadRequests() {
+      console.log("Loading requests");
+      const purchaseBody = document.getElementById("purchaseRequestsBody");
+      const serviceBody = document.getElementById("serviceRequestsBody");
+      purchaseBody.innerHTML = "<tr><td colspan='9'>Loading...</td></tr>";
+      serviceBody.innerHTML = "<tr><td colspan='7'>Loading...</td></tr>";
+
+      try {
+        const snapshot = await db.ref("requests").once("value");
+        const requests = snapshot.val() || {};
+
+        purchaseBody.innerHTML = "";
+        const purchaseRequests = requests.purchase_requests || {};
+        const purchaseList = Object.entries(purchaseRequests)
+          .filter(([_, req]) => req.status === "pending")
+          .map(([id, req]) => ({ id, ...req }));
+
+        if (purchaseList.length === 0) {
+          purchaseBody.innerHTML = "<tr><td colspan='9'>No pending purchase requests.</td></tr>";
+        } else {
+          purchaseList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          purchaseList.forEach(req => {
+            purchaseBody.innerHTML += `<tr>
+              <td>${req.itemName}</td>
+              <td>${req.description}</td>
+              <td>${req.quantity}</td>
+              <td>${parseFloat(req.unitCost || 0).toFixed(2)}</td>
+              <td>${parseFloat(req.totalCost || 0).toFixed(2)}</td>
+              <td>${req.supplier}</td>
+              <td>${req.contact}</td>
+              <td>${new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" })}</td>
+              <td class="no-print">
+                <button class="action-btn accept-btn" onclick="processRequest('purchase_requests', '${req.id}', 'accepted')"><i class="fas fa-check"></i> Accept</button>
+                <button class="action-btn reject-btn" onclick="processRequest('purchase_requests', '${req.id}', 'rejected')"><i class="fas fa-times"></i> Reject</button>
+              </td>
+            </tr>`;
+          });
+        }
+
+        serviceBody.innerHTML = "";
+        const serviceRequests = requests.service_requests || {};
+        const serviceList = Object.entries(serviceRequests)
+          .filter(([_, req]) => req.status === "pending")
+          .map(([id, req]) => ({ id, ...req }));
+
+        if (serviceList.length === 0) {
+          serviceBody.innerHTML = "<tr><td colspan='7'>No pending service requests.</td></tr>";
+        } else {
+          serviceList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          serviceList.forEach(req => {
+            serviceBody.innerHTML += `<tr>
+              <td>${req.serviceName}</td>
+              <td>${req.description}</td>
+              <td>${parseFloat(req.amount || 0).toFixed(2)}</td>
+              <td>${req.provider}</td>
+              <td>${req.contact}</td>
+              <td>${req.date}</td>
+              <td class="no-print">
+                <button class="action-btn accept-btn" onclick="processRequest('service_requests', '${req.id}', 'accepted')"><i class="fas fa-check"></i> Accept</button>
+                <button class="action-btn reject-btn" onclick="processRequest('service_requests', '${req.id}', 'rejected')"><i class="fas fa-times"></i> Reject</button>
+              </td>
+            </tr>`;
+          });
+        }
+      } catch (error) {
+        console.error("Load requests error:", error);
+        purchaseBody.innerHTML = `<tr><td colspan="9">Failed to load purchase requests: ${error.message}</td></tr>`;
+        serviceBody.innerHTML = `<tr><td colspan="7">Failed to load service requests: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    async function loadProcessedRequests() {
+      console.log("Loading processed requests");
+      const acceptedBody = document.getElementById("acceptedRequestsBody");
+      const rejectedBody = document.getElementById("rejectedRequestsBody");
+      acceptedBody.innerHTML = "<tr><td colspan='7'>Loading...</td></tr>";
+      rejectedBody.innerHTML = "<tr><td colspan='7'>Loading...</td></tr>";
+
+      try {
+        const snapshot = await db.ref("outs").once("value");
+        const outs = snapshot.val() || {};
+
+        acceptedBody.innerHTML = "";
+        let acceptedList = [];
+        if (outs.accepted) {
+          if (outs.accepted.purchase_requests) {
+            for (const [id, req] of Object.entries(outs.accepted.purchase_requests)) {
+              acceptedList.push({
+                id,
+                type: "Purchase",
+                name: req.itemName,
+                description: req.description,
+                cost: parseFloat(req.totalCost || 0).toFixed(2),
+                provider: req.supplier,
+                contact: req.contact,
+                timestamp: req.processedTimestamp
+              });
+            }
+          }
+          if (outs.accepted.service_requests) {
+            for (const [id, req] of Object.entries(outs.accepted.service_requests)) {
+              acceptedList.push({
+                id,
+                type: "Service",
+                name: req.serviceName,
+                description: req.description,
+                cost: parseFloat(req.amount || 0).toFixed(2),
+                provider: req.provider,
+                contact: req.contact,
+                timestamp: req.processedTimestamp
+              });
+            }
+          }
+        }
+
+        if (acceptedList.length === 0) {
+          acceptedBody.innerHTML = "<tr><td colspan='7'>No accepted requests.</td></tr>";
+        } else {
+          acceptedList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          acceptedList.forEach(req => {
+            acceptedBody.innerHTML += `<tr>
+              <td>${req.type}</td>
+              <td>${req.name}</td>
+              <td>${req.description}</td>
+              <td>${req.cost}</td>
+              <td>${req.provider}</td>
+              <td>${req.contact}</td>
+              <td>${new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" })}</td>
+            </tr>`;
+          });
+        }
+
+        rejectedBody.innerHTML = "";
+        let rejectedList = [];
+        if (outs.rejected) {
+          if (outs.rejected.purchase_requests) {
+            for (const [id, req] of Object.entries(outs.rejected.purchase_requests)) {
+              rejectedList.push({
+                id,
+                type: "Purchase",
+                name: req.itemName,
+                description: req.description,
+                cost: parseFloat(req.totalCost || 0).toFixed(2),
+                provider: req.supplier,
+                contact: req.contact,
+                timestamp: req.processedTimestamp
+              });
+            }
+          }
+          if (outs.rejected.service_requests) {
+            for (const [id, req] of Object.entries(outs.rejected.service_requests)) {
+              rejectedList.push({
+                id,
+                type: "Service",
+                name: req.serviceName,
+                description: req.description,
+                cost: parseFloat(req.amount || 0).toFixed(2),
+                provider: req.provider,
+                contact: req.contact,
+                timestamp: req.processedTimestamp
+              });
+            }
+          }
+        }
+
+        if (rejectedList.length === 0) {
+          rejectedBody.innerHTML = "<tr><td colspan='7'>No rejected requests.</td></tr>";
+        } else {
+          rejectedList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+          rejectedList.forEach(req => {
+            rejectedBody.innerHTML += `<tr>
+              <td>${req.type}</td>
+              <td>${req.name}</td>
+              <td>${req.description}</td>
+              <td>${req.cost}</td>
+              <td>${req.provider}</td>
+              <td>${req.contact}</td>
+              <td>${new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" })}</td>
+            </tr>`;
+          });
+        }
+      } catch (error) {
+        console.error("Load processed requests error:", error);
+        acceptedBody.innerHTML = `<tr><td colspan="7">Failed to load accepted requests: ${error.message}</td></tr>`;
+        rejectedBody.innerHTML = `<tr><td colspan="7">Failed to load rejected requests: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    async function loadAnnouncements() {
+      console.log("Loading announcements");
+      const announcementsBody = document.getElementById("announcementsBody");
+      announcementsBody.innerHTML = "<tr><td colspan='6'>Loading...</td></tr>";
+
+      try {
+        const snapshot = await db.ref("announcements").once("value");
+        const announcements = snapshot.val() || {};
+        let announcementsList = [];
+
+        if (announcements.general) {
+          for (const [id, ann] of Object.entries(announcements.general)) {
+            announcementsList.push({
+              id,
+              type: "General",
+              title: ann.title || "N/A",
+              message: ann.message || "N/A",
+              postedBy: ann.accountant || "Unknown",
+              date: ann.date
+            });
+          }
+        }
+
+        if (announcements.individual) {
+          for (const [regNo, anns] of Object.entries(announcements.individual)) {
+            for (const [id, ann] of Object.entries(anns)) {
+              announcementsList.push({
+                id: `${regNo}/${id}`,
+                type: `Individual (${regNo.replace(/_/g, "/")})`,
+                title: ann.title || "N/A",
+                message: ann.message || "N/A",
+                postedBy: ann.accountant || "Unknown",
+                date: ann.date
+              });
+            }
+          }
+        }
+
+        announcementsBody.innerHTML = "";
+        if (announcementsList.length === 0) {
+          announcementsBody.innerHTML = "<tr><td colspan='6'>No announcements found.</td></tr>";
+          return;
+        }
+
+        announcementsList.sort((a, b) => new Date(b.date) - new Date(a.date));
+        announcementsList.forEach(ann => {
+          announcementsBody.innerHTML += `<tr>
+            <td>${ann.type}</td>
+            <td>${ann.title}</td>
+            <td>${ann.message}</td>
+            <td>${ann.postedBy}</td>
+            <td>${ann.date}</td>
+            <td class="no-print">
+              <button class="action-btn reject-btn" onclick="deleteAnnouncement('${ann.id}', '${ann.type.split(" ")[0].toLowerCase()}')"><i class="fas fa-trash"></i> Delete</button>
+            </td>
+          </tr>`;
+        });
+      } catch (error) {
+        console.error("Load announcements error:", error);
+        announcementsBody.innerHTML = `<tr><td colspan="6">Failed to load announcements: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    async function deleteAnnouncement(id, type) {
+      console.log(`Deleting announcement: ${id}, type: ${type}`);
+      if (!confirm(`Are you sure you want to delete this announcement?`)) return;
+      try {
+        if (type === "general") {
+          await db.ref(`announcements/general/${id}`).remove();
+        } else {
+          const [regNo, annId] = id.split("/");
+          await db.ref(`announcements/individual/${regNo.replace(/\//g, "_")}/${annId}`).remove();
+        }
+        showPopup("Announcement deleted successfully!", false);
+        loadAnnouncements();
+      } catch (error) {
+        console.error("Delete announcement error:", error);
+        showPopup(`Failed to delete announcement: ${error.message}`, true);
+      }
+    }
+
+    async function toggleAnnouncementForm() {
+      console.log("Toggling announcement form");
+      const typeSelect = document.getElementById("announcementType");
+      const studentSelect = document.getElementById("announcementStudent");
+      studentSelect.style.display = typeSelect.value === "individual" ? "block" : "none";
+      if (typeSelect.value !== "individual") return;
+
+      studentSelect.innerHTML = "<option>Loading...</option>";
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let studentsList = [];
+
+        for (const [regNo, student] of Object.entries(students)) {
+          studentsList.push({
+            regNo: regNo.replace(/_/g, "/"),
+            name: student.profile?.name || "N/A"
+          });
+        }
+
+        studentSelect.innerHTML = "";
+        if (studentsList.length === 0) {
+          studentSelect.innerHTML = `<option value="">No students found.</option>`;
+          return;
+        }
+
+        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+        studentSelect.innerHTML = `<option value="">Select a student</option>`;
+        studentsList.forEach(student => {
+          studentSelect.innerHTML += `<option value="${student.regNo}">${student.name} (${student.regNo})</option>`;
+        });
+      } catch (error) {
+        console.error("Load students for announcement error:", error);
+        studentSelect.innerHTML = `<option>Failed to load students: ${error.message}</option>`;
+      }
+    }
+
+    async function addAnnouncement() {
+      console.log("Adding announcement");
+      const type = document.getElementById("announcementType").value;
+      const title = document.getElementById("announcementTitle").value.trim();
+      const message = document.getElementById("announcementMessage").value.trim();
+      const adminName = document.getElementById("adminName").textContent;
+
+      if (!title || !message) {
+        showPopup("Please enter both title and message.", true);
+        return;
+      }
+
+      const announcement = {
+        title,
+        message,
+        date: new Date().toISOString().split("T")[0],
+        accountant: adminName
+      };
+
+      try {
+        if (type === "general") {
+          await db.ref("announcements/general").push(announcement);
+        } else {
+          const regNo = document.getElementById("announcementStudent").value;
+          if (!regNo) {
+            showPopup("Please select a student for individual announcement.", true);
+            return;
+          }
+          const normalizedRegNo = regNo.replace(/\//g, "_");
+          await db.ref(`announcements/individual/${normalizedRegNo}`).push(announcement);
+        }
+        showPopup("Announcement added successfully!", false);
+        document.getElementById("announcementTitle").value = "";
+        document.getElementById("announcementMessage").value = "";
+        document.getElementById("announcementStudent").value = "";
+        loadAnnouncements();
+      } catch (error) {
+        console.error("Add announcement error:", error);
+        showPopup(`Failed to add announcement: ${error.message}`, true);
+      }
+    }
+
+    async function loadTransactions() {
+      console.log("Loading transactions");
+      const transactionsBody = document.getElementById("transactionsBody");
+      transactionsBody.innerHTML = "<tr><td colspan='8'>Loading...</td></tr>";
+
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let transactionsList = [];
+
+        for (const [regNo, student] of Object.entries(students)) {
+          const transactions = student.fees?.transactions || {};
+          const studentName = student.profile?.name || "N/A";
+          for (const [txId, tx] of Object.entries(transactions)) {
+            if (tx.status === "completed") {
+              transactionsList.push({
+                regNo: regNo.replace(/_/g, "/"),
+                studentName,
+                transactionCode: tx.transactionCode || "N/A",
+                payer: tx.payer || "N/A",
+                amount: parseFloat(tx.amount || 0).toFixed(2),
+                method: tx.method || "N/A",
+                date: tx.date || "N/A",
+                timestamp: tx.timestamp
+              });
+            }
+          }
+        }
+
+        transactionsBody.innerHTML = "";
+        if (transactionsList.length === 0) {
+          transactionsBody.innerHTML = "<tr><td colspan='8'>No transactions found.</td></tr>";
+          return;
+        }
+
+        transactionsList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+        transactionsList.forEach(tx => {
+          const timestamp = new Date(tx.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" });
+          transactionsBody.innerHTML += `<tr>
+            <td>${tx.regNo}</td>
+            <td>${tx.studentName}</td>
+            <td>${tx.transactionCode}</td>
+            <td>${tx.payer}</td>
+            <td class="amount-added">${tx.amount}</td>
+            <td>${tx.method}</td>
+            <td>${tx.date}</td>
+            <td>${timestamp}</td>
+          </tr>`;
+        });
+      } catch (error) {
+        console.error("Load transactions error:", error);
+        transactionsBody.innerHTML = `<tr><td colspan="8">Failed to load transactions: ${error.message}</td></tr>`;
+        showPopup(`Error: ${error.message}`, true);
+      }
+    }
+
+    function logout() {
+      console.log("Logging out");
+      auth.signOut().then(() => {
+        localStorage.clear();
+        window.location.href = "index.html";
+      }).catch(error => {
+        console.error("Logout error:", error);
+        showPopup(`Logout failed: ${error.message}`, true);
+      });
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {      console.log("Document loaded, initializing portal");
+      // Ensure all sections are loaded when the document is ready
+      showSection("dashboard");
+    });
+  </script>
+</body>
+</html>
