@@ -631,11 +631,12 @@
       console.log("Loading dashboard");
       loadingScreen.classList.add("active");
       try {
-        const [studentsSnapshot, schoolFundsSnapshot, otherFundsSnapshot, requestsSnapshot] = await Promise.all([
+        const [studentsSnapshot, schoolFundsSnapshot, otherFundsSnapshot, purchaseRequestsSnapshot, serviceRequestsSnapshot] = await Promise.all([
           db.ref("users/students").once("value"),
           db.ref("school_funds").once("value"),
           db.ref("other_funds").once("value"),
-          db.ref("requests").once("value")
+          db.ref("outs/purchase_requests").once("value"),
+          db.ref("requests/service_requests").once("value")
         ]);
 
         const students = studentsSnapshot.val() || {};
@@ -644,9 +645,8 @@
         const schoolFunds = schoolFundsSnapshot.val() || { balance: 0 };
         const otherFunds = otherFundsSnapshot.val() || { balance: 0 };
 
-        const requests = requestsSnapshot.val() || {};
-        const purchaseRequests = requests.purchase_requests || {};
-        const serviceRequests = requests.service_requests || {};
+        const purchaseRequests = purchaseRequestsSnapshot.val() || {};
+        const serviceRequests = serviceRequestsSnapshot.val() || {};
         const pendingRequests = Object.values(purchaseRequests).filter(req => req.status === "pending").length +
                                Object.values(serviceRequests).filter(req => req.status === "pending").length;
 
@@ -966,7 +966,6 @@
           return;
         }
 
-        // Check for duplicate transaction code
         const studentsSnapshot = await db.ref("users/students").once("value");
         const students = studentsSnapshot.val() || {};
         for (const [studentRegNo, student] of Object.entries(students)) {
@@ -1027,7 +1026,6 @@
 
         let transactions = [];
 
-        // Manual deductions and additions
         const manualTransactions = transactionsSnapshot.val() || {};
         for (const [txId, tx] of Object.entries(manualTransactions)) {
           if (tx.account === "schoolFunds") {
@@ -1043,7 +1041,6 @@
           }
         }
 
-        // Accepted service requests
         const serviceRequests = acceptedServiceSnapshot.val() || {};
         for (const [reqId, req] of Object.entries(serviceRequests)) {
           transactions.push({
@@ -1057,7 +1054,6 @@
           });
         }
 
-        // Accepted purchase requests
         const purchaseRequests = acceptedPurchaseSnapshot.val() || {};
         for (const [reqId, req] of Object.entries(purchaseRequests)) {
           transactions.push({
@@ -1115,7 +1111,6 @@
 
         let transactions = [];
 
-        // Student other funds transactions
         const students = studentsSnapshot.val() || {};
         for (const [regNo, student] of Object.entries(students)) {
           const otherFundsTx = student.other_funds?.transactions || {};
@@ -1135,7 +1130,6 @@
           }
         }
 
-        // Manual deductions
         const manualTransactions = transactionsSnapshot.val() || {};
         for (const [txId, tx] of Object.entries(manualTransactions)) {
           if (tx.account === "otherFunds" && tx.type === "deduction") {
@@ -1306,7 +1300,8 @@
       if (!confirm(`Are you sure you want to ${status} this ${type.replace("_requests", "")} request?`)) return;
       loadingScreen.classList.add("active");
       try {
-        const requestRef = db.ref(`requests/${type}/${id}`);
+        const requestPath = type === "purchase_requests" ? `outs/purchase_requests/${id}` : `requests/${type}/${id}`;
+        const requestRef = db.ref(requestPath);
         const snapshot = await requestRef.once("value");
         const request = snapshot.val();
         if (!request) {
@@ -1372,11 +1367,13 @@
       serviceBody.innerHTML = "<tr><td colspan='7'>Loading...</td></tr>";
 
       try {
-        const snapshot = await db.ref("requests").once("value");
-        const requests = snapshot.val() || {};
+        const [purchaseSnapshot, serviceSnapshot] = await Promise.all([
+          db.ref("outs/purchase_requests").once("value"),
+          db.ref("requests/service_requests").once("value")
+        ]);
 
         purchaseBody.innerHTML = "";
-        const purchaseRequests = requests.purchase_requests || {};
+        const purchaseRequests = purchaseSnapshot.val() || {};
         const purchaseList = Object.entries(purchaseRequests)
           .filter(([_, req]) => req.status === "pending")
           .map(([id, req]) => ({ id, ...req }));
@@ -1387,14 +1384,14 @@
           purchaseList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           purchaseList.forEach(req => {
             purchaseBody.innerHTML += `<tr>
-              <td>${req.itemName}</td>
-              <td>${req.description}</td>
-              <td>${req.quantity}</td>
+              <td>${req.itemName || "N/A"}</td>
+              <td>${req.description || "N/A"}</td>
+              <td>${req.quantity || 0}</td>
               <td>${parseFloat(req.unitCost || 0).toFixed(2)}</td>
               <td>${parseFloat(req.totalCost || 0).toFixed(2)}</td>
-              <td>${req.supplier}</td>
-              <td>${req.contact}</td>
-              <td>${new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" })}</td>
+              <td>${req.supplier || "N/A"}</td>
+              <td>${req.contact || "N/A"}</td>
+              <td>${req.timestamp ? new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" }) : "N/A"}</td>
               <td class="no-print">
                 <button class="action-btn accept-btn" onclick="processRequest('purchase_requests', '${req.id}', 'accepted')"><i class="fas fa-check"></i> Accept</button>
                 <button class="action-btn reject-btn" onclick="processRequest('purchase_requests', '${req.id}', 'rejected')"><i class="fas fa-times"></i> Reject</button>
@@ -1404,7 +1401,7 @@
         }
 
         serviceBody.innerHTML = "";
-        const serviceRequests = requests.service_requests || {};
+        const serviceRequests = serviceSnapshot.val() || {};
         const serviceList = Object.entries(serviceRequests)
           .filter(([_, req]) => req.status === "pending")
           .map(([id, req]) => ({ id, ...req }));
@@ -1415,12 +1412,12 @@
           serviceList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
           serviceList.forEach(req => {
             serviceBody.innerHTML += `<tr>
-              <td>${req.serviceName}</td>
-              <td>${req.description}</td>
+              <td>${req.serviceName || "N/A"}</td>
+              <td>${req.description || "N/A"}</td>
               <td>${parseFloat(req.amount || 0).toFixed(2)}</td>
-              <td>${req.provider}</td>
-              <td>${req.contact}</td>
-              <td>${req.date}</td>
+              <td>${req.provider || "N/A"}</td>
+              <td>${req.contact || "N/A"}</td>
+              <td>${req.date || "N/A"}</td>
               <td class="no-print">
                 <button class="action-btn accept-btn" onclick="processRequest('service_requests', '${req.id}', 'accepted')"><i class="fas fa-check"></i> Accept</button>
                 <button class="action-btn reject-btn" onclick="processRequest('service_requests', '${req.id}', 'rejected')"><i class="fas fa-times"></i> Reject</button>
@@ -1455,12 +1452,12 @@
               acceptedList.push({
                 id,
                 type: "Purchase",
-                name: req.itemName,
-                description: req.description,
+                name: req.itemName || "N/A",
+                description: req.description || "N/A",
                 cost: parseFloat(req.totalCost || 0).toFixed(2),
-                provider: req.supplier,
-                contact: req.contact,
-                timestamp: req.processedTimestamp
+                provider: req.supplier || "N/A",
+                contact: req.contact || "N/A",
+                timestamp: req.processedTimestamp || "N/A"
               });
             }
           }
@@ -1469,12 +1466,12 @@
               acceptedList.push({
                 id,
                 type: "Service",
-                name: req.serviceName,
-                description: req.description,
+                name: req.serviceName || "N/A",
+                description: req.description || "N/A",
                 cost: parseFloat(req.amount || 0).toFixed(2),
-                provider: req.provider,
-                contact: req.contact,
-                timestamp: req.processedTimestamp
+                provider: req.provider || "N/A",
+                contact: req.contact || "N/A",
+                timestamp: req.processedTimestamp || "N/A"
               });
             }
           }
@@ -1492,7 +1489,7 @@
               <td>${req.cost}</td>
               <td>${req.provider}</td>
               <td>${req.contact}</td>
-              <td>${new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" })}</td>
+              <td>${req.timestamp ? new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" }) : "N/A"}</td>
             </tr>`;
           });
         }
@@ -1505,12 +1502,12 @@
               rejectedList.push({
                 id,
                 type: "Purchase",
-                name: req.itemName,
-                description: req.description,
+                name: req.itemName || "N/A",
+                description: req.description || "N/A",
                 cost: parseFloat(req.totalCost || 0).toFixed(2),
-                provider: req.supplier,
-                contact: req.contact,
-                timestamp: req.processedTimestamp
+                provider: req.supplier || "N/A",
+                contact: req.contact || "N/A",
+                timestamp: req.processedTimestamp || "N/A"
               });
             }
           }
@@ -1519,12 +1516,12 @@
               rejectedList.push({
                 id,
                 type: "Service",
-                name: req.serviceName,
-                description: req.description,
+                name: req.serviceName || "N/A",
+                description: req.description || "N/A",
                 cost: parseFloat(req.amount || 0).toFixed(2),
-                provider: req.provider,
-                contact: req.contact,
-                timestamp: req.processedTimestamp
+                provider: req.provider || "N/A",
+                contact: req.contact || "N/A",
+                timestamp: req.processedTimestamp || "N/A"
               });
             }
           }
@@ -1542,7 +1539,7 @@
               <td>${req.cost}</td>
               <td>${req.provider}</td>
               <td>${req.contact}</td>
-              <td>${new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" })}</td>
+              <td>${req.timestamp ? new Date(req.timestamp).toLocaleString("en-US", { timeZone: "Africa/Nairobi" }) : "N/A"}</td>
             </tr>`;
           });
         }
@@ -1768,6 +1765,39 @@
         console.error("Load transactions error:", error);
         transactionsBody.innerHTML = `<tr><td colspan="8">Failed to load transactions: ${error.message}</td></tr>`;
         showPopup(`Error: ${error.message}`, true);
+              }
+    }
+
+    async function loadAnnouncementForm() {
+      console.log("Loading announcement form students");
+      const studentSelect = document.getElementById("announcementStudent");
+      studentSelect.innerHTML = "<option>Loading...</option>";
+      try {
+        const snapshot = await db.ref("users/students").once("value");
+        const students = snapshot.val() || {};
+        let studentsList = [];
+
+        for (const [regNo, student] of Object.entries(students)) {
+          studentsList.push({
+            regNo: regNo.replace(/_/g, "/"),
+            name: student.profile?.name || "N/A"
+          });
+        }
+
+        studentSelect.innerHTML = "<option value=''>Select a student</option>";
+        if (studentsList.length === 0) {
+          studentSelect.innerHTML = "<option value=''>No students found.</option>";
+          return;
+        }
+
+        studentsList.sort((a, b) => a.regNo.localeCompare(b.regNo));
+        studentsList.forEach(student => {
+          studentSelect.innerHTML += `<option value="${student.regNo.replace(/\//g, "_")}">${student.name} (${student.regNo})</option>`;
+        });
+      } catch (error) {
+        console.error("Load announcement form error:", error);
+        studentSelect.innerHTML = `<option>Failed to load students: ${error.message}</option>`;
+        showPopup(`Error: ${error.message}`, true);
       }
     }
 
@@ -1778,13 +1808,45 @@
         window.location.href = "index.html";
       }).catch(error => {
         console.error("Logout error:", error);
-        showPopup(`Logout failed: ${error.message}`, true);
+        showPopup(`Failed to logout: ${error.message}`, true);
       });
     }
 
-    document.addEventListener("DOMContentLoaded", () => {      console.log("Document loaded, initializing portal");
-      // Ensure all sections are loaded when the document is ready
-      showSection("dashboard");
+    function exportToPDF(sectionId) {
+      console.log(`Exporting ${sectionId} to PDF`);
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      const table = document.getElementById(`${sectionId}Table`);
+      if (!table) {
+        showPopup(`No table found for ${sectionId}`, true);
+        return;
+      }
+      doc.autoTable({ html: table });
+      doc.save(`${sectionId}.pdf`);
+    }
+
+    function exportToExcel(sectionId) {
+      console.log(`Exporting ${sectionId} to Excel`);
+      const table = document.getElementById(`${sectionId}Table`);
+      if (!table) {
+        showPopup(`No table found for ${sectionId}`, true);
+        return;
+      }
+      const wb = XLSX.utils.table_to_book(table, { sheet: sectionId });
+      XLSX.writeFile(wb, `${sectionId}.xlsx`);
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      console.log("DOM content loaded");
+      const sections = ["students", "fees", "schoolFunds", "otherFunds", "requests", "processedRequests", "announcements", "transactions"];
+      sections.forEach(section => {
+        const sectionDiv = document.getElementById(section);
+        sectionDiv.innerHTML += `
+          <div class="no-print" style="margin-top: 20px;">
+            <button onclick="exportToPDF('${section}')"><i class="fas fa-file-pdf"></i> Export to PDF</button>
+            <button onclick="exportToExcel('${section}')"><i class="fas fa-file-excel"></i> Export to Excel</button>
+          </div>`;
+      });
     });
   </script>
 </body>
